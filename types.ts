@@ -1,3 +1,4 @@
+
 export interface BibleVerse {
   reference: string;
   text: string;
@@ -24,4 +25,11 @@ export interface StudyContent {
 export interface GeneratedImage {
   url: string;
   prompt: string;
+}
+
+export interface TimelineEntry {
+  id: string;
+  title: string;
+  theme: string;
+  timestamp: number;
 }

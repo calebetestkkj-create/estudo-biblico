@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { StudyInput } from './components/StudyInput';
 import { StudyResult } from './components/StudyResult';
-import { StudyContent } from './types';
+import { StudyTimeline } from './components/StudyTimeline';
+import { StudyContent, TimelineEntry } from './types';
 import { generateStudyContent } from './services/geminiService';
 import { Cross, Moon, Sun } from 'lucide-react';
 
@@ -10,31 +12,56 @@ const App: React.FC = () => {
   const [studyData, setStudyData] = useState<StudyContent | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(false);
+  const [history, setHistory] = useState<TimelineEntry[]>([]);
 
-  // Initialize theme based on preference
+  // Initialize theme and history
   useEffect(() => {
+    // Theme
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
     if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
       setDarkMode(true);
       document.documentElement.classList.add('dark');
-    } else {
-      setDarkMode(false);
-      document.documentElement.classList.remove('dark');
+    }
+
+    // History
+    const savedHistory = localStorage.getItem('study_history');
+    if (savedHistory) {
+      try {
+        setHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error("Failed to parse history", e);
+      }
     }
   }, []);
 
   const toggleTheme = () => {
-    if (darkMode) {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-      setDarkMode(false);
-    } else {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    if (newMode) {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
-      setDarkMode(true);
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     }
+  };
+
+  const addToHistory = (data: StudyContent) => {
+    // Check for duplicates in the last 10 items to avoid clutter
+    const exists = history.some(item => item.title === data.title && item.theme === data.theme);
+    if (exists) return;
+
+    const newEntry: TimelineEntry = {
+      id: crypto.randomUUID(),
+      title: data.title,
+      theme: data.theme,
+      timestamp: Date.now(),
+    };
+    
+    const updatedHistory = [newEntry, ...history].slice(0, 10); // Keep last 10
+    setHistory(updatedHistory);
+    localStorage.setItem('study_history', JSON.stringify(updatedHistory));
   };
 
   const handleGenerate = async (topic: string) => {
@@ -43,11 +70,22 @@ const App: React.FC = () => {
     try {
       const data = await generateStudyContent(topic);
       setStudyData(data);
+      // Automatically add to history when generated
+      addToHistory(data);
     } catch (err) {
       setError("Houve um erro ao gerar o estudo. Por favor, tente novamente com um tema diferente.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaveStudy = (data: StudyContent) => {
+    addToHistory(data);
+  };
+
+  const clearHistory = () => {
+    setHistory([]);
+    localStorage.removeItem('study_history');
   };
 
   const handleReset = () => {
@@ -95,18 +133,20 @@ const App: React.FC = () => {
         )}
 
         {!studyData ? (
-          <div className="flex flex-col items-center justify-center min-h-[70vh]">
+          <div className="flex flex-col items-center justify-center min-h-[70vh] py-10">
             <StudyInput onGenerate={handleGenerate} isLoading={loading} />
             
-            {loading && (
+            {loading ? (
               <div className="mt-8 text-center text-stone-500 dark:text-amber-500/80 animate-pulse">
                 <p className="mb-2 font-serif text-lg italic">"Lâmpada para os meus pés é a tua palavra..."</p>
                 <p className="text-sm">Consultando as escrituras e preparando o sermão...</p>
               </div>
+            ) : (
+              <StudyTimeline history={history} onClear={clearHistory} onSelect={handleGenerate} />
             )}
           </div>
         ) : (
-          <StudyResult data={studyData} onBack={handleReset} />
+          <StudyResult data={studyData} onBack={handleReset} onSave={handleSaveStudy} />
         )}
       </main>
 
