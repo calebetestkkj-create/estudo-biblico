@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
   <head>
@@ -50,6 +51,41 @@
       .dark .markdown-content blockquote {
         border-left-color: #f59e0b;
         color: #d6d3d1;
+      }
+
+      /* Print Styles */
+      @media print {
+        @page {
+          margin: 2cm;
+        }
+        body {
+          background-color: white !important;
+          color: black !important;
+        }
+        nav, footer, .print-hidden, .print\:hidden {
+          display: none !important;
+        }
+        .container {
+          width: 100% !important;
+          max-width: none !important;
+          padding: 0 !important;
+          margin: 0 !important;
+        }
+        .markdown-content {
+          font-size: 12pt !important;
+          color: black !important;
+        }
+        h1 { font-size: 24pt !important; color: black !important; }
+        h2 { font-size: 18pt !important; color: black !important; margin-top: 1cm; }
+        .bg-white, .bg-stone-900, .bg-stone-50 {
+          background-color: transparent !important;
+        }
+        .shadow-sm, .shadow-xl, .shadow-2xl {
+          box-shadow: none !important;
+        }
+        .border, .border-b, .border-t {
+          border-color: #ddd !important;
+        }
       }
     </style>
   <script type="importmap">
